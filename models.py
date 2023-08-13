@@ -93,9 +93,9 @@ class VAE(SuperVAE):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, 'Standard VAE')
 				
     def forward(self, x):
-        mu, logvar = super().encoder(x)
-        z = super().reparameterize(mu, logvar)
-        x_recon = super().decoder(z)
+        mu, logvar = self.encoder(x)
+        z = self.reparameterize(mu, logvar)
+        x_recon = self.decoder(z)
         return x_recon, mu, logvar
         
 
@@ -106,14 +106,14 @@ class SMVAE_LOGNORMAL(SuperVAE):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, 'Lognormal SMVAE')
 
     def forward(self, x):
-            mu, logvar = super().encoder(x)
-            rep = super().reparameterize(mu, logvar)
-            z = rep[:, :super().latent_size-1]
-            c = rep[:, super().latent_size-1]
+            mu, logvar = self.encoder(x)
+            rep = self.reparameterize(mu, logvar)
+            z = rep[:, :self.latent_size-1]
+            c = rep[:, self.latent_size-1]
             c = c.reshape(-1, 1)
             c = torch.exp(c)
             #c = torch.sigmoid(c)
-            x_recon = super().decoder(z)
+            x_recon = self.decoder(z)
             x_recon = x_recon*c
             x_recon = torch.clamp(x_recon, max=1)
             return x_recon, mu, logvar
@@ -138,11 +138,11 @@ class SMVAE_GAMMA(SuperVAE):
         return mu, logvar, alpha, beta
 
     def forward(self, x):
-        mean, var = super().encoder(x)
+        mean, var = self.encoder(x)
         mu, logvar, alpha, beta = self.get_params(mean, var)
-        z, c = super().reparameterize(mu, logvar, alpha, beta, is_gamma=True)
+        z, c = self.reparameterize(mu, logvar, alpha, beta, is_gamma=True)
         c = c.reshape(-1, 1)
-        x_recon = super().decoder(z)
+        x_recon = self.decoder(z)
         x_recon = x_recon*c
         x_recon = torch.clamp(x_recon, max=1)
         return x_recon, mean, var
@@ -163,12 +163,12 @@ class SMVAE_GAMMA(SuperVAE):
         prior_alpha, prior_beta = Tensor([self.a]), Tensor([1])
         mu, logvar, alpha, beta = self.get_params(mean, var)
 			
-        KLD = super().KL_normal(mu, logvar) \
+        KLD = self.KL_normal(mu, logvar) \
             + self.KL_gamma(alpha, beta, prior_alpha, prior_beta)
 
         if is_bce:
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
         else:
             REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
-        super().loss = REC + KLD, REC, KLD
-        return super().loss
+        self.loss = REC + KLD, REC, KLD
+        return self.loss
