@@ -44,7 +44,7 @@ class Decoder(nn.Module):
 
 
 class SuperVAE(nn.Module):
-    def __init__(self, input_size, enc_hidden_sizes, 
+		def __init__(self, input_size, enc_hidden_sizes, 
                  dec_hidden_sizes, latent_size, name='model name',
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__()
