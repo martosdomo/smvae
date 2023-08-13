@@ -3,6 +3,7 @@
 import random
 from torchvision import datasets
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 # CONTRAST FUNCTIONS
 
