@@ -129,6 +129,7 @@ class SMVAE_GAMMA(SuperVAE):
         gname = 'Gamma(' + str(alpha) + ') SMVAE'
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, dimension_decrease=1, name=gname)
+        self.alpha = alpha
 
     def get_params(self, mean, var):
         mu = mean[:,:-1]
@@ -164,7 +165,7 @@ class SMVAE_GAMMA(SuperVAE):
         return kl
 
     def loss_function(self, x_recon, x, mean, var, is_bce):
-        prior_alpha, prior_beta = Tensor([self.a]), Tensor([1])
+        prior_alpha, prior_beta = Tensor([self.alpha]), Tensor([1])
         mu, logvar, alpha, beta = self.get_params(mean, var)
 			
         KLD = self.KL_normal(mu, logvar) \
