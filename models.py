@@ -52,7 +52,8 @@ class Decoder(nn.Module):
 
 class SuperVAE(nn.Module):
     def __init__(self, input_size, enc_hidden_sizes, 
-                 dec_hidden_sizes, latent_size, 
+                 dec_hidden_sizes, latent_size,
+                 beta=1, 
                  dimension_decrease=0, name='model name',
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__()
@@ -62,6 +63,7 @@ class SuperVAE(nn.Module):
         self.latent_size = latent_size
         self.name = name
         self.loss = (0,0,0)
+        self.beta = beta
 
     def reparameterize(self, mu, logvar, 
                        alpha=0, beta=0, is_gamma=False):
@@ -84,15 +86,16 @@ class SuperVAE(nn.Module):
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
         else:
             REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
+        KLD = self.beta*KLD
         self.loss = REC + KLD, REC, KLD
         return self.loss
 
 
 class VAE(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
-                 dec_hidden_sizes, latent_size,
+                 dec_hidden_sizes, latent_size, beta=1,
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
-        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, name='Standard VAE')
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, beta, name='Standard VAE')
 				
     def forward(self, x):
         mu, logvar = self.encoder(x)
@@ -124,11 +127,11 @@ class SMVAE_LOGNORMAL(SuperVAE):
 
 class SMVAE_GAMMA(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size, alpha=1,
+                dec_hidden_sizes, latent_size, alpha=1, beta=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         gname = 'Gamma(' + str(alpha) + ') SMVAE'
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
-                         latent_size, dimension_decrease=1, name=gname)
+                         latent_size, beta, dimension_decrease=1, name=gname)
         self.alpha = alpha
 
     def get_params(self, mean, var):
@@ -170,6 +173,7 @@ class SMVAE_GAMMA(SuperVAE):
 			
         KLD = self.KL_normal(mu, logvar) \
             + self.KL_gamma(alpha, beta, prior_alpha, prior_beta)
+        KLD = self.beta*KLD
 
         if is_bce:
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
