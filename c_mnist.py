@@ -1,6 +1,8 @@
 # CONTRAST AUGMENTED MNIST DATASET
 
 import random
+from torchvision import datasets
+from torch.utils.data import DataLoader
 
 # CONTRAST FUNCTIONS
 
