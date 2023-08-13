@@ -52,11 +52,13 @@ class Decoder(nn.Module):
 
 class SuperVAE(nn.Module):
     def __init__(self, input_size, enc_hidden_sizes, 
-                 dec_hidden_sizes, latent_size, name='model name',
+                 dec_hidden_sizes, latent_size, 
+                 dimension_decrease=0, name='model name',
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__()
+        dec_latent = latent_size - dimension_decrease
         self.encoder = Encoder(input_size, enc_hidden_sizes, latent_size, enc_nonlinearity)
-        self.decoder = Decoder(latent_size, dec_hidden_sizes, input_size, dec_nonlinearity)
+        self.decoder = Decoder(dec_latent, dec_hidden_sizes, input_size, dec_nonlinearity)
         self.latent_size = latent_size
         self.name = name
         self.loss = (0,0,0)
@@ -90,7 +92,7 @@ class VAE(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
                  dec_hidden_sizes, latent_size,
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
-        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, 'Standard VAE')
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, name='Standard VAE')
 				
     def forward(self, x):
         mu, logvar = self.encoder(x)
@@ -103,7 +105,8 @@ class SMVAE_LOGNORMAL(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
                 dec_hidden_sizes, latent_size,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
-        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, 'Lognormal SMVAE')
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
+                         latent_size, dimension_decrease=1, name='Lognormal SMVAE')
 
     def forward(self, x):
             mu, logvar = self.encoder(x)
@@ -123,8 +126,9 @@ class SMVAE_GAMMA(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
                 dec_hidden_sizes, latent_size, alpha=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
-        name = 'Gamma(' + str(alpha) + ') SMVAE'
-        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, name)
+        gname = 'Gamma(' + str(alpha) + ') SMVAE'
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
+                         latent_size, dimension_decrease=1, name=gname)
 
     def get_params(self, mean, var):
         mu = mean[:,:-1]
