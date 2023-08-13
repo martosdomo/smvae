@@ -106,10 +106,10 @@ class VAE(SuperVAE):
 
 class SMVAE_LOGNORMAL(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size,
+                dec_hidden_sizes, latent_size, beta=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
-                         latent_size, dimension_decrease=1, name='Lognormal SMVAE')
+                         latent_size, beta, dimension_decrease=1, name='Lognormal SMVAE')
 
     def forward(self, x):
             mu, logvar = self.encoder(x)
