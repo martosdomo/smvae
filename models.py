@@ -136,10 +136,9 @@ class SMVAE_LOGNORMAL(SuperVAE):
             c = rep[:, self.latent_size-1]
             c = c.reshape(-1, 1)
             c = torch.exp(c)
-            c = torch.sigmoid(c)
             x_recon = self.decoder(z)
             x_recon = x_recon*c
-            #x_recon = torch.clamp(x_recon, max=1)
+            x_recon = torch.clamp(x_recon, max=1)
             return x_recon, mu, logvar
 
 
@@ -168,10 +167,9 @@ class SMVAE_GAMMA(SuperVAE):
         mu, logvar, alpha, beta = self.get_params(mean, var)
         z, c = self.reparameterize(mu, logvar, alpha, beta, is_gamma=True)
         c = c.reshape(-1, 1)
-        c = torch.sigmoid(c)
         x_recon = self.decoder(z)
         x_recon = x_recon*c
-        #x_recon = torch.clamp(x_recon, max=1)
+        x_recon = torch.clamp(x_recon, max=1)
         return x_recon, mean, var
 
     def KL_gamma(self, alpha, beta, prior_alpha, prior_beta):
