@@ -62,7 +62,7 @@ def grid(model, coordinates, rows=20, cols=20, title='Title'):
 
 def compare(model, testset, n, k=0, title='Title'):
     og = [testset[i+k][0].reshape(28,28) for i in range(n)]
-    rec = [model(testset[i+k][0])[0][0].detach().numpy().reshape(28,28) for i in range(n)]
+    rec = [torch.clamp(model(testset[i+k][0])[0][0],max=1).detach().numpy().reshape(28,28) for i in range(n)]
 
     fig, ax = plt.subplots(2, n, figsize=(n,3))
     fig.suptitle(title)
