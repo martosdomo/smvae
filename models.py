@@ -103,6 +103,24 @@ class VAE(SuperVAE):
         x_recon = self.decoder(z)
         return x_recon, mu, logvar
         
+class SMVAE_NORMAL(SuperVAE):
+    def __init__(self, input_size, enc_hidden_sizes,
+                dec_hidden_sizes, latent_size, beta=1,
+                enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
+                         latent_size, beta, dimension_decrease=1, name='Normal SMVAE')
+
+    def forward(self, x):
+            mu, logvar = self.encoder(x)
+            rep = self.reparameterize(mu, logvar)
+            z = rep[:, :self.latent_size-1]
+            c = rep[:, self.latent_size-1]
+            c = c.reshape(-1, 1)
+            c = torch.sigmoid(c)
+            x_recon = self.decoder(z)
+            x_recon = x_recon*c
+            #x_recon = torch.clamp(x_recon, max=1)
+            return x_recon, mu, logvar        
 
 class SMVAE_LOGNORMAL(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
