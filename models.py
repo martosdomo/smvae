@@ -158,8 +158,7 @@ class SMVAE_BETA(SuperVAE):
         prior_alpha, prior_beta = Tensor([1]), Tensor([1])
         mu, logvar, alpha, beta = self.get_params(mean, var)
 
-        n = len(mu)
-        print(len(mu), len(logvar))
+        n = self.latent_size - 1
         KL_normal = KL(Normal(mu, torch.exp(0.5*logvar)), Normal(torch.zeros(n), torch.ones(n)))
         KL_beta = KL(Beta(alpha, beta), Beta(prior_alpha, prior_beta))
         KLD = KL_normal + KL_beta
