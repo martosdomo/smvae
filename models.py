@@ -158,8 +158,6 @@ class SMVAE_BETA(SuperVAE):
         prior_alpha, prior_beta = Tensor([1]), Tensor([1])
         mu, logvar, alpha, beta = self.get_params(mean, var)
 
-        print(mu.shape, logvar.shape, alpha.shape, beta.shape)
-
         n = self.latent_size - 1
         KL_normal = KL(Normal(mu, torch.exp(0.5*logvar)), Normal(torch.zeros(n), torch.ones(n))) # batch_size x latent_size-1
         KL_normal = torch.sum(KL_normal, 1) # sum latents in each sample
@@ -171,6 +169,7 @@ class SMVAE_BETA(SuperVAE):
         else:
             REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
         REC = (n/2) * log(self.var) + REC / (2*self.var)
+        print(KLD.shape, REC.shape)
         self.loss = REC + KLD, REC, KLD
         return self.loss
 
