@@ -161,7 +161,8 @@ class SMVAE_BETA(SuperVAE):
         print(mu.shape, logvar.shape, alpha.shape, beta.shape)
 
         n = self.latent_size - 1
-        KL_normal = KL(Normal(mu, torch.exp(0.5*logvar)), Normal(torch.zeros(n), torch.ones(n)))
+        KL_normal = KL(Normal(mu, torch.exp(0.5*logvar)), Normal(torch.zeros(n), torch.ones(n))) # batch_size x latent_size-1
+        KL_normal = torch.sum(KL_normal, 1) # sum latents in each sample
         KL_beta = KL(Beta(alpha, beta), Beta(prior_alpha, prior_beta))
         KLD = KL_normal + KL_beta
 
