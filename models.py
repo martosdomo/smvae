@@ -140,8 +140,8 @@ class SMVAE_BETA(SuperVAE):
         mu = mean[:,:-1]
         logvar = var[:,:-1]
         
-        alpha = mean[:,-1]
-        beta = var[:,-1]
+        alpha = torch.exp(mean[:,-1])
+        beta = torch.exp(var[:,-1])
 
         return mu, logvar, alpha, beta
 
@@ -167,6 +167,7 @@ class SMVAE_BETA(SuperVAE):
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
         else:
             REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
+        REC = (n/2) * log(self.var) + REC / (2*self.var)
         self.loss = REC + KLD, REC, KLD
         return self.loss
 
