@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.distributions.gamma import Gamma
 from torch.distributions.normal import Normal
 from torch import Tensor
+from math import log, pi
 
 class Encoder(nn.Module):
     def __init__(self, input_size, hidden_sizes, latent_size, nonlinearity):
@@ -53,7 +54,7 @@ class Decoder(nn.Module):
 class SuperVAE(nn.Module):
     def __init__(self, input_size, enc_hidden_sizes, 
                  dec_hidden_sizes, latent_size,
-                 beta=1, 
+                 var=1, 
                  dimension_decrease=0, name='model name',
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__()
@@ -63,7 +64,7 @@ class SuperVAE(nn.Module):
         self.latent_size = latent_size
         self.name = name
         self.loss = (0,0,0)
-        self.beta = beta
+        self.var = var # observation noise prediction
 
     def reparameterize(self, mu, logvar, 
                        alpha=0, beta=0, is_gamma=False):
@@ -81,21 +82,22 @@ class SuperVAE(nn.Module):
         return -0.5 * torch.sum((self.latent_size + torch.sum(logvar - mu.pow(2) - logvar.exp(), dim=1)))
 	
     def loss_function(self, x_recon, x, mu, logvar, is_bce):
+        n = len(x)
         KLD = self.KL_normal(mu, logvar)
         if is_bce:
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
         else:
             REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
-        KLD = self.beta*KLD
+        REC = (n/2) * (log(2*pi) + log(self.var)) + REC / (2*self.var)
         self.loss = REC + KLD, REC, KLD
         return self.loss
 
 
 class VAE(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
-                 dec_hidden_sizes, latent_size, beta=1,
+                 dec_hidden_sizes, latent_size, var=1,
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
-        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, beta, name='Standard VAE')
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, var, name='Standard VAE')
 				
     def forward(self, x):
         mu, logvar = self.encoder(x)
@@ -105,10 +107,10 @@ class VAE(SuperVAE):
         
 class SMVAE_NORMAL(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size, beta=1,
+                dec_hidden_sizes, latent_size, var=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
-                         latent_size, beta, dimension_decrease=1, name='Normal SMVAE')
+                         latent_size, var, dimension_decrease=1, name='Normal SMVAE')
 
     def forward(self, x):
             mu, logvar = self.encoder(x)
@@ -123,10 +125,10 @@ class SMVAE_NORMAL(SuperVAE):
 
 class SMVAE_LOGNORMAL(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size, beta=1,
+                dec_hidden_sizes, latent_size, var=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
-                         latent_size, beta, dimension_decrease=1, name='Lognormal SMVAE')
+                         latent_size, var, dimension_decrease=1, name='Lognormal SMVAE')
 
     def forward(self, x):
             mu, logvar = self.encoder(x)
@@ -143,11 +145,11 @@ class SMVAE_LOGNORMAL(SuperVAE):
 
 class SMVAE_GAMMA(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size, alpha=1, beta=1,
+                dec_hidden_sizes, latent_size, alpha=1, var=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         gname = 'Gamma(' + str(alpha) + ') SMVAE'
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
-                         latent_size, beta, dimension_decrease=1, name=gname)
+                         latent_size, var, dimension_decrease=1, name=gname)
         self.alpha = alpha
 
     def get_params(self, mean, var):
@@ -189,7 +191,7 @@ class SMVAE_GAMMA(SuperVAE):
 			
         KLD = self.KL_normal(mu, logvar) \
             + self.KL_gamma(alpha, beta, prior_alpha, prior_beta)
-        KLD = self.beta*KLD
+        #KLD = self.var*KLD
 
         if is_bce:
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
