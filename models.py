@@ -68,7 +68,7 @@ class SuperVAE(nn.Module):
         self.latent_size = latent_size
         self.name = name
         self.loss = (0,0,0)
-        self.var = var # observation noise prediction
+        self.var = var # observation noise hyperparameter
 
     def reparameterize(self, mu, logvar, 
                        ind_bias=False, distribution=None, alpha=0, beta=0):
@@ -87,7 +87,7 @@ class SuperVAE(nn.Module):
 	
     def loss_function(self, x_recon, x, mu, logvar, is_bce):
         n = len(x)
-
+        print('dim elv', n)
         KLD = self.KL_normal(mu, logvar)
 
         if is_bce:
