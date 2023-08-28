@@ -88,7 +88,7 @@ class SuperVAE(nn.Module):
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
         else:
             REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
-        REC = (n/2) * (log(2*pi) + log(self.var)) + REC / (2*self.var)
+        REC = (n/2) * log(self.var) + REC / (2*self.var)
         self.loss = REC + KLD, REC, KLD
         return self.loss
 
