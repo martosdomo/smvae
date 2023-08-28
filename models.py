@@ -86,8 +86,7 @@ class SuperVAE(nn.Module):
         return -0.5 * torch.sum((self.latent_size + torch.sum(logvar - mu.pow(2) - logvar.exp(), dim=1)))
 	
     def loss_function(self, x_recon, x, mu, logvar, is_bce):
-        n = len(x)
-        print('dim elv', n)
+        n = 784
         KLD = self.KL_normal(mu, logvar)
 
         if is_bce:
@@ -168,7 +167,7 @@ class SMVAE_BETA(SuperVAE):
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
         else:
             REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
-        REC = (n/2) * log(self.var) + REC / (2*self.var)
+        REC = (784/2) * log(self.var) + REC / (2*self.var)
         print(KLD.shape, REC.shape)
         self.loss = REC + KLD, REC, KLD
         return self.loss
