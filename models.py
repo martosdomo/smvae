@@ -1,8 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from torch.distributions.gamma import Gamma
 from torch.distributions.normal import Normal
+from torch.distributions.beta import Beta
+from torch.distributions.kl import kl_divergence as KL
+
 from torch import Tensor
 from math import log, pi
 
@@ -67,12 +71,12 @@ class SuperVAE(nn.Module):
         self.var = var # observation noise prediction
 
     def reparameterize(self, mu, logvar, 
-                       alpha=0, beta=0, is_gamma=False):
+                       ind_bias=False, distribution=None, alpha=0, beta=0):
         var = torch.exp(0.5*logvar)
         z = Normal(mu, var).rsample()
-        if is_gamma:
-                c = Gamma(alpha, beta).rsample()
-                return z, c
+        if ind_bias:
+            c = distribution(alpha, beta).rsample()
+            return z, c
         return z
 
     def KL_normal(self, mu, logvar):
@@ -83,7 +87,9 @@ class SuperVAE(nn.Module):
 	
     def loss_function(self, x_recon, x, mu, logvar, is_bce):
         n = len(x)
+
         KLD = self.KL_normal(mu, logvar)
+
         if is_bce:
             REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
         else:
@@ -121,7 +127,48 @@ class SMVAE_NORMAL(SuperVAE):
             c = torch.sigmoid(c)
             x_recon = self.decoder(z)
             x_recon = x_recon*c
-            return x_recon, mu, logvar        
+            return x_recon, mu, logvar    
+
+class SMVAE_BETA(SuperVAE):    
+    def __init__(self, input_size, enc_hidden_sizes,
+                dec_hidden_sizes, latent_size, var=1,
+                enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
+                         latent_size, var, dimension_decrease=1, name='Beta SMVAE')
+    
+    def get_params(self, mean, var):
+        mu = mean[:,:-1]
+        logvar = var[:,:-1]
+        
+        alpha = mean[:,-1]
+        beta = var[:,-1]
+
+        return mu, logvar, alpha, beta
+
+    def forward(self, x):
+        mean, var = self.encoder(x)
+        mu, logvar, alpha, beta = self.get_params(mean, var)
+        z, c = self.reparameterize(mu, logvar, True, Beta, alpha, beta)
+        c = c.reshape(-1, 1)
+        x_recon = self.decoder(z)
+        x_recon = x_recon*c
+        return x_recon, mean, var  
+    
+    def loss_function(self, x_recon, x, mean, var, is_bce):
+        prior_alpha, prior_beta = Tensor([1]), Tensor([1])
+        mu, logvar, alpha, beta = self.get_params(mean, var)
+
+        n = len(mu)
+        KL_normal = KL(Normal(mu, torch.exp(0.5*logvar)), Normal(torch.zeros(n)), torch.ones(n))
+        KL_beta = KL(Beta(alpha, beta), Beta(prior_alpha, prior_beta))
+        KLD = KL_normal + KL_beta
+
+        if is_bce:
+            REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
+        else:
+            REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
+        self.loss = REC + KLD, REC, KLD
+        return self.loss
 
 class SMVAE_LOGNORMAL(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
@@ -166,7 +213,7 @@ class SMVAE_GAMMA(SuperVAE):
     def forward(self, x):
         mean, var = self.encoder(x)
         mu, logvar, alpha, beta = self.get_params(mean, var)
-        z, c = self.reparameterize(mu, logvar, alpha, beta, is_gamma=True)
+        z, c = self.reparameterize(mu, logvar, True, Gamma, alpha, beta)
         c = c.reshape(-1, 1)
         x_recon = self.decoder(z)
         x_recon = x_recon*c
