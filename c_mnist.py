@@ -56,6 +56,6 @@ def create_testset(digit_instances, min_contrast=0, max_contrast=1):
         download=True,
         transform=transform
     )
-    testset = random_contrast(testset, min_contrast, max_contrast, digit_instances, 200000)
+    testset = random_contrast(testset, min_contrast, max_contrast, digit_instances, 20000)
 
     return testset

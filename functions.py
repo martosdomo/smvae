@@ -17,20 +17,19 @@ def train(model, trainset, is_bce, learning_rate, batch_size, epochs):
             optimizer.zero_grad()
             x_recon, mu, var = model(inputs)
             #print(mu, var) # WORKING
-            loss, reconstr, regul = model.loss_function(x_recon, inputs, mu, var, is_bce)
+            loss, reconstr, regul = model.loss_function(x_recon, inputs, mu, var, is_bce, batch_size)
             #print('loss: ', loss, reconstr, regul)
             loss.backward()
             optimizer.step()
-            running_loss += loss.item()
-            running_reconstr += reconstr.item()
-            running_regul += regul.item()
-        norm = len(trainset) / batch_size
-        epoch_loss = running_loss / norm
-        epoch_reconstr = running_reconstr / norm
-        epoch_regul = running_regul / norm
+            running_loss += loss
+            running_reconstr += reconstr
+            running_regul += regul
+        epoch_loss = -1*running_loss / len(trainset)
+        epoch_reconstr = -1*running_reconstr / len(trainset)
+        epoch_regul = -1*running_regul / len(trainset)
         losses.append([epoch_loss, epoch_reconstr, epoch_regul])
 
-        print('Epoch [%d/%d], Loss: %.3f, Reconstruction: %.3f, Regularization: %.3f'
+        print('Epoch [%d/%d], ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f'
               % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul))
     return losses
 
@@ -152,18 +151,18 @@ def get_avereges(model, LATENT_SIZE, testset):
 
     return post_mean, cs, means, vars
 
-def ELBO(model, is_bce, testset):
+def ELBO(model, is_bce, testset, batch_size=1): #testset batch_size = 1
     running_loss = 0.0
     running_reconstr = 0.0
     running_regul = 0.0
     for input in testset:
         x_recon, mu, var = model(input[0])
-        loss, reconstr, regul = model.loss_function(x_recon, input[0], mu, var, is_bce)
+        loss, reconstr, regul = model.loss_function(x_recon, input[0], mu, var, is_bce, batch_size)
         running_loss += loss
         running_reconstr += reconstr
         running_regul += regul
-    epoch_loss = running_loss / len(testset)
-    epoch_reconstr = running_reconstr / len(testset)
-    epoch_regul = running_regul / len(testset)
+    epoch_loss = -1*running_loss / len(testset)
+    epoch_reconstr = -1*running_reconstr / len(testset)
+    epoch_regul = -1*running_regul / len(testset)
 
     return epoch_loss, epoch_reconstr, epoch_regul

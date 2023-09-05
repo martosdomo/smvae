@@ -84,7 +84,7 @@ class SuperVAE(nn.Module):
         q = Normal(torch.zeros_like(mu), torch.ones_like(var))
         return torch.sum(KL(p,q))
 
-    def loss_function(self, x_recon, x, mu, var, is_bce):
+    def loss_function(self, x_recon, x, mu, var, is_bce, BATCH_SIZE):
         n = self.input_size
 
         KLD = self.KL_divergence(mu, var)
@@ -93,7 +93,10 @@ class SuperVAE(nn.Module):
             REC = F.binary_cross_entropy(x_recon, x.view(-1, n), reduction='sum')
         else:
             REC = F.mse_loss(x_recon, x.view(-1, n), reduction='sum')
-        REC = (n/2) * log(self.var) + REC / (2*self.var)
+        # REC: sum{i=1, batch_size} (MSE_i)
+        # sum_losses = sum{i=1,batch_size} (logvar + MSE_i/var) =
+        # = batch_size*logvar + 1/var * sum(MSE_i)
+        REC = BATCH_SIZE * (n/2) * log(self.var) + REC / (2*self.var)
 
         self.loss = REC + KLD, REC, KLD
         return self.loss
