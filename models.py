@@ -79,17 +79,10 @@ class SuperVAE(nn.Module):
             return z, c
         return z
 
-    '''def KL_normal(self, mu, logvar):
-        
-                #KL divergence of the given normal distribution from N(0, I)
-        
-        return -0.5 * torch.sum((self.latent_size + torch.sum(logvar - mu.pow(2) - logvar.exp(), dim=1)))
-	'''
     def KL_normal(self, mu, var): # kl div of N(mu, var) from N(0, I)
         p = Normal(mu, var)
         q = Normal(torch.zeros_like(mu), torch.ones_like(var))
-        print('hi', KL(p,q), sum(KL(p,q)))
-        return sum(KL(p,q))
+        return torch.sum(KL(p,q))
 
     def loss_function(self, x_recon, x, mu, var, is_bce):
         n = self.input_size
@@ -100,7 +93,6 @@ class SuperVAE(nn.Module):
         else:
             REC = F.mse_loss(x_recon, x.view(-1, n), reduction='sum')
         REC = (n/2) * log(self.var) + REC / (2*self.var)
-        print(KLD, REC)
 
         self.loss = REC + KLD, REC, KLD
         return self.loss
