@@ -157,8 +157,8 @@ def ELBO(model, is_bce, testset):
     running_reconstr = 0.0
     running_regul = 0.0
     for input in testset:
-        x_recon, mu, logvar = model(input[0])
-        loss, reconstr, regul = model.loss_function(x_recon, input[0], mu, logvar, is_bce)
+        x_recon, mu, var = model(input[0])
+        loss, reconstr, regul = model.loss_function(x_recon, input[0], mu, var, is_bce)
         running_loss += loss
         running_reconstr += reconstr
         running_regul += regul
