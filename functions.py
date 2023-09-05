@@ -12,22 +12,23 @@ def train(model, trainset, is_bce, learning_rate, batch_size, epochs):
         running_loss = 0.0
         running_reconstr = 0.0
         running_regul = 0.0
-        for i, data in enumerate(trainloader, 0):
+        for i, data in enumerate(trainloader):
             inputs, _ = data
             optimizer.zero_grad()
-            x_recon, mu, logvar = model(inputs)
-            #print(mu, logvar) # WORKING
-            loss, reconstr, regul = model.loss_function(x_recon, inputs, mu, logvar, is_bce)
+            x_recon, mu, var = model(inputs)
+            #print(mu, var) # WORKING
+            loss, reconstr, regul = model.loss_function(x_recon, inputs, mu, var, is_bce)
             #print('loss: ', loss, reconstr, regul)
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
-            running_reconstr += reconstr
-            running_regul += regul
-        epoch_loss = running_loss/len(trainset)
-        epoch_reconstr = running_reconstr/len(trainset)
-        epoch_regul = running_regul/len(trainset)
-        losses.append([epoch_loss, epoch_reconstr.detach().numpy(), epoch_regul.detach().numpy()])
+            running_reconstr += reconstr.item()
+            running_regul += regul.item()
+        norm = len(trainset) / batch_size
+        epoch_loss = running_loss / norm
+        epoch_reconstr = running_reconstr / norm
+        epoch_regul = running_regul / norm
+        losses.append([epoch_loss, epoch_reconstr, epoch_regul])
 
         print('Epoch [%d/%d], Loss: %.3f, Reconstruction: %.3f, Regularization: %.3f'
               % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul))
