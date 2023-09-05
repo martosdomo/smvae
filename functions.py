@@ -23,9 +23,9 @@ def train(model, trainset, is_bce, learning_rate, batch_size, epochs):
             #print('loss: ', loss, reconstr, regul)
             loss.backward()
             optimizer.step()
-            running_loss += loss
-            running_reconstr += reconstr
-            running_regul += regul
+            running_loss += loss.item() # item: tensor -> number
+            running_reconstr += reconstr.item() # plot miatt
+            running_regul += regul.item()
         epoch_loss = -1*running_loss / len(trainset)
         epoch_reconstr = -1*running_reconstr / len(trainset)
         epoch_regul = -1*running_regul / len(trainset)
