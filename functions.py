@@ -8,11 +8,7 @@ contrast_values = [0.2, 0.5, 0.8, 1]
 
 def train(model, trainset, is_bce, learning_rate, batch_size, epochs):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    trainloader = DataLoader(
-    trainset,
-    batch_size,
-    shuffle=True
-    )
+    trainloader = DataLoader(trainset, batch_size, shuffle=True)
     losses = []
     for epoch in range(epochs):
         running_loss = 0.0

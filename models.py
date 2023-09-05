@@ -65,37 +65,42 @@ class SuperVAE(nn.Module):
         dec_latent = latent_size - dimension_decrease
         self.encoder = Encoder(input_size, enc_hidden_sizes, latent_size, enc_nonlinearity)
         self.decoder = Decoder(dec_latent, dec_hidden_sizes, input_size, dec_nonlinearity)
+        self.input_size = input_size
         self.latent_size = latent_size
         self.name = name
         self.loss = (0,0,0)
         self.var = var # observation noise hyperparameter
 
-    def reparameterize(self, mu, logvar, 
+    def reparameterize(self, mu, var, 
                        ind_bias=False, distribution=None, alpha=0, beta=0):
-        var = torch.exp(0.5*logvar)
         z = Normal(mu, var).rsample()
         if ind_bias:
             c = distribution(alpha, beta).rsample()
             return z, c
         return z
 
-    def KL_normal(self, mu, logvar):
-        '''
-                KL divergence of the given normal distribution from N(0, I)
-        '''
+    '''def KL_normal(self, mu, logvar):
+        
+                #KL divergence of the given normal distribution from N(0, I)
+        
         return -0.5 * torch.sum((self.latent_size + torch.sum(logvar - mu.pow(2) - logvar.exp(), dim=1)))
-	
-    def loss_function(self, x_recon, x, mu, logvar, is_bce):
-        n = 784
-        KLD = self.KL_normal(mu, logvar)
+	'''
+    def KL_normal(self, mu, var): # kl div of N(mu, var) from N(0, I)
+        p = Normal(mu, var)
+        q = Normal(torch.zeros_like(mu), torch.ones_like(var))
+        
+        return sum(KL(p,q))
+
+    def loss_function(self, x_recon, x, mu, var, is_bce):
+        n = self.input_size
+        KLD = self.KL_divergence(mu, var)
 
         if is_bce:
-            REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
+            REC = F.binary_cross_entropy(x_recon, x.view(-1, n), reduction='sum')
         else:
-            REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
-        print('kl: ', KLD, '; mse: ', REC)
+            REC = F.mse_loss(x_recon, x.view(-1, n), reduction='sum')
         REC = (n/2) * log(self.var) + REC / (2*self.var)
-        print(' elso tag: ', REC)
+
         self.loss = REC + KLD, REC, KLD
         return self.loss
 
@@ -105,12 +110,16 @@ class VAE(SuperVAE):
                  dec_hidden_sizes, latent_size, var=1,
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, var, name='Standard VAE')
-				
+
+    def KL_divergence(self, mu, var):
+        return self.KL_normal(mu, var)
+
     def forward(self, x):
         mu, logvar = self.encoder(x)
-        z = self.reparameterize(mu, logvar)
+        var = torch.exp(0.5*logvar)
+        z = self.reparameterize(mu, var)
         x_recon = self.decoder(z)
-        return x_recon, mu, logvar
+        return x_recon, mu, var
         
 class SMVAE_NORMAL(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
@@ -150,7 +159,8 @@ class SMVAE_BETA(SuperVAE):
         mean, var = self.encoder(x)
         mu, logvar, alpha, beta = self.get_params(mean, var)
         z, c = self.reparameterize(mu, logvar, True, Beta, alpha, beta)
-        c = c.reshape(-1, 1)
+
+        c = c.reshape(-1, 1) # transpose
         x_recon = self.decoder(z)
         x_recon = x_recon*c
         return x_recon, mean, var  
@@ -193,6 +203,7 @@ class SMVAE_LOGNORMAL(SuperVAE):
             x_recon = torch.clamp(x_recon, max=1)
             return x_recon, mu, logvar
 
+'''
 class SMVAE_GAMMA(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
                 dec_hidden_sizes, latent_size, alpha=1, var=1,
@@ -224,9 +235,9 @@ class SMVAE_GAMMA(SuperVAE):
         return x_recon, mean, var
 
     def KL_gamma(self, alpha, beta, prior_alpha, prior_beta):
-        '''
-                KL divergence of the given Gamma distribution from the prior Gamma
-        '''
+        
+                #KL divergence of the given Gamma distribution from the prior Gamma
+        
         kl = torch.sum(\
             (alpha-prior_alpha)*torch.digamma(alpha) \
             - (beta-prior_beta)*alpha/beta \
@@ -249,3 +260,4 @@ class SMVAE_GAMMA(SuperVAE):
             REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
         self.loss = REC + KLD, REC, KLD
         return self.loss
+'''
