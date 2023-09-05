@@ -121,6 +121,7 @@ class SMVAE_NORMAL(SuperVAE):
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name='Normal SMVAE')
+        print('nice')
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
