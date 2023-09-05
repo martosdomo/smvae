@@ -100,6 +100,7 @@ class SuperVAE(nn.Module):
         else:
             REC = F.mse_loss(x_recon, x.view(-1, n), reduction='sum')
         REC = (n/2) * log(self.var) + REC / (2*self.var)
+        print(KLD, REC)
 
         self.loss = REC + KLD, REC, KLD
         return self.loss
