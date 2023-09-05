@@ -121,7 +121,6 @@ class SMVAE_NORMAL(SuperVAE):
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name='Normal SMVAE')
-        print('nice')
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
@@ -186,6 +185,9 @@ class SMVAE_LOGNORMAL(SuperVAE):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name='Lognormal SMVAE')
 
+    def KL_divergence(self, mu, var):
+        return self.KL_normal(mu, var)
+
     def forward(self, x):
             mu, logvar = self.encoder(x)
             var = torch.exp(0.5*logvar)
@@ -202,8 +204,7 @@ class SMVAE_LOGNORMAL(SuperVAE):
             x_recon = torch.clamp(x_recon, max=1)
             return x_recon, mu, var
 
-'''
-class SMVAE_GAMMA(SuperVAE):
+'''class SMVAE_GAMMA(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
                 dec_hidden_sizes, latent_size, alpha=1, var=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):

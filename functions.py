@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 from torch.utils.data import DataLoader
 
-contrast_values = [0.2, 0.5, 0.8, 1]
-
 def train(model, trainset, is_bce, learning_rate, batch_size, epochs):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     trainloader = DataLoader(trainset, batch_size, shuffle=True)
