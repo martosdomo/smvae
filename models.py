@@ -86,6 +86,7 @@ class SuperVAE(nn.Module):
 
     def loss_function(self, x_recon, x, mu, var, is_bce):
         n = self.input_size
+
         KLD = self.KL_divergence(mu, var)
 
         if is_bce:
@@ -121,16 +122,20 @@ class SMVAE_NORMAL(SuperVAE):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name='Normal SMVAE')
 
+    def KL_divergence(self, mu, var):
+        return self.KL_normal(mu, var)
+
     def forward(self, x):
             mu, logvar = self.encoder(x)
-            rep = self.reparameterize(mu, logvar)
+            var = torch.exp(0.5*logvar)
+            rep = self.reparameterize(mu, var)
             z = rep[:, :self.latent_size-1]
             c = rep[:, self.latent_size-1]
             c = c.reshape(-1, 1)
             c = torch.sigmoid(c)
             x_recon = self.decoder(z)
             x_recon = x_recon*c
-            return x_recon, mu, logvar    
+            return x_recon, mu, var    
 
 class SMVAE_BETA(SuperVAE):    
     def __init__(self, input_size, enc_hidden_sizes,
@@ -139,43 +144,39 @@ class SMVAE_BETA(SuperVAE):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name='Beta SMVAE')
     
-    def get_params(self, mean, var):
+    def get_params(self, mean, logvar):
         mu = mean[:,:-1]
-        logvar = var[:,:-1]
+        var = logvar[:,:-1]
+        var = torch.exp(0.5*var)
         
         alpha = torch.exp(mean[:,-1])
-        beta = torch.exp(var[:,-1])
+        beta = torch.exp(logvar[:,-1])
 
-        return mu, logvar, alpha, beta
+        return mu, var, alpha, beta
 
     def forward(self, x):
-        mean, var = self.encoder(x)
-        mu, logvar, alpha, beta = self.get_params(mean, var)
-        z, c = self.reparameterize(mu, logvar, True, Beta, alpha, beta)
-
+        mean, logvar = self.encoder(x)
+        mu, var, alpha, beta = self.get_params(mean, logvar)
+        z, c = self.reparameterize(mu, var, True, Beta, alpha, beta)
         c = c.reshape(-1, 1) # transpose
         x_recon = self.decoder(z)
         x_recon = x_recon*c
-        return x_recon, mean, var  
-    
-    def loss_function(self, x_recon, x, mean, var, is_bce):
-        prior_alpha, prior_beta = Tensor([1]), Tensor([1])
-        mu, logvar, alpha, beta = self.get_params(mean, var)
 
-        n = self.latent_size - 1
-        KL_normal = KL(Normal(mu, torch.exp(0.5*logvar)), Normal(torch.zeros(n), torch.ones(n))) # batch_size x latent_size-1
-        KL_normal = torch.sum(KL_normal, 1) # sum latents in each sample
-        KL_beta = KL(Beta(alpha, beta), Beta(prior_alpha, prior_beta))
-        KLD = KL_normal + KL_beta
+        par1 = (mu, alpha)
+        par2 = (var, beta)
+        return x_recon, par1, par2
 
-        if is_bce:
-            REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
-        else:
-            REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
-        REC = (784/2) * log(self.var) + REC / (2*self.var)
-        print(KLD.shape, REC.shape)
-        self.loss = REC + KLD, REC, KLD
-        return self.loss
+    def KL_divergence(self, par1, par2):
+        mu, alpha = par1[0], par1[1]
+        var, beta = par2[0], par2[1]
+
+        kl_normal = self.KL_normal(mu, var)
+
+        p_beta = Beta(alpha, beta)
+        q_beta = Beta(1, 1)
+        kl_beta = torch.sum(KL(p_beta, q_beta))
+
+        return kl_normal + kl_beta
 
 class SMVAE_LOGNORMAL(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
@@ -186,15 +187,19 @@ class SMVAE_LOGNORMAL(SuperVAE):
 
     def forward(self, x):
             mu, logvar = self.encoder(x)
-            rep = self.reparameterize(mu, logvar)
+            var = torch.exp(0.5*logvar)
+            rep = self.reparameterize(mu, var)
+
+            # get params
             z = rep[:, :self.latent_size-1]
             c = rep[:, self.latent_size-1]
             c = c.reshape(-1, 1)
             c = torch.exp(c)
+
             x_recon = self.decoder(z)
             x_recon = x_recon*c
             x_recon = torch.clamp(x_recon, max=1)
-            return x_recon, mu, logvar
+            return x_recon, mu, var
 
 '''
 class SMVAE_GAMMA(SuperVAE):
