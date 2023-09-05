@@ -88,7 +88,7 @@ class SuperVAE(nn.Module):
     def KL_normal(self, mu, var): # kl div of N(mu, var) from N(0, I)
         p = Normal(mu, var)
         q = Normal(torch.zeros_like(mu), torch.ones_like(var))
-        
+        print('hi', KL(p,q), sum(KL(p,q)))
         return sum(KL(p,q))
 
     def loss_function(self, x_recon, x, mu, var, is_bce):
