@@ -96,7 +96,9 @@ class SuperVAE(nn.Module):
         # REC: sum{i=1, batch_size} (MSE_i)
         # sum_losses = sum{i=1,batch_size} (logvar + MSE_i/var) =
         # = batch_size*logvar + 1/var * sum(MSE_i)
-        REC = BATCH_SIZE * (n/2) * log(self.var) + REC / (2*self.var)
+        print('BCE : ' + str(REC) + ' KL : ' + str(KLD))
+        REC = BATCH_SIZE * (n/2) * log(2*pi*self.var) + REC / (2*self.var)
+        print('sigma után: ' + str(REC))
 
         self.loss = REC + KLD, REC, KLD
         return self.loss
