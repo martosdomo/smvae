@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 contrast_values = [0.2, 0.5, 0.8, 1]
 
-def train(model, trainset, is_bce, learning_rate, batch_size, epochs):
+def train(model, trainset, learning_rate, batch_size, epochs):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     trainloader = DataLoader(trainset, batch_size, shuffle=True)
     losses = []
@@ -19,7 +19,7 @@ def train(model, trainset, is_bce, learning_rate, batch_size, epochs):
             optimizer.zero_grad()
             x_recon, mu, var = model(inputs)
             #print(mu, var) # WORKING
-            loss, reconstr, regul = model.loss_function(x_recon, inputs, mu, var, is_bce, batch_size)
+            loss, reconstr, regul = model.loss_function(x_recon, inputs, mu, var, batch_size)
             #print('loss: ', loss, reconstr, regul)
             loss.backward()
             optimizer.step()
@@ -153,13 +153,13 @@ def get_avereges(model, LATENT_SIZE, testset):
 
     return post_mean, cs, means, vars
 
-def ELBO(model, is_bce, testset, batch_size=1): #testset batch_size = 1
+def ELBO(model, testset, batch_size=1): #testset batch_size = 1
     running_loss = 0.0
     running_reconstr = 0.0
     running_regul = 0.0
     for input in testset:
         x_recon, mu, var = model(input[0])
-        loss, reconstr, regul = model.loss_function(x_recon, input[0], mu, var, is_bce, batch_size)
+        loss, reconstr, regul = model.loss_function(x_recon, input[0], mu, var, batch_size)
         running_loss += loss
         running_reconstr += reconstr
         running_regul += regul
