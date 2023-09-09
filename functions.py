@@ -167,4 +167,6 @@ def ELBO(model, testset, batch_size=1): #testset batch_size = 1
     epoch_reconstr = -1*running_reconstr / len(testset)
     epoch_regul = -1*running_regul / len(testset)
 
-    return epoch_loss, epoch_reconstr, epoch_regul
+    #return epoch_loss, epoch_reconstr, epoch_regul
+
+    return 'ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f' % (epoch_loss, epoch_reconstr, epoch_regul)
