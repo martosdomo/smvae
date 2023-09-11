@@ -155,9 +155,22 @@ class SMVAE_BETA(SuperVAE):
 
         return mu, var, alpha, beta
 
+    def get_params_alter(self, mean, logvar):
+        mu = mean[:,:-1]
+        var = logvar[:,:-1]
+        var = torch.exp(0.5*var)
+
+        beta_mean = torch.sigmoid(mean[:,-1])
+        beta_sum = torch.exp(logvar[:,-1])
+
+        alpha = beta_mean*beta_sum
+        beta = beta_sum - alpha
+
+        return mu, var, alpha, beta
+
     def forward(self, x):
         mean, logvar = self.encoder(x)
-        mu, var, alpha, beta = self.get_params(mean, logvar)
+        mu, var, alpha, beta = self.get_params_alter(mean, logvar)
         z, c = self.reparameterize(mu, var, True, Beta, alpha, beta)
         c = c.reshape(-1, 1) # transpose
         x_recon = self.decoder(z)
