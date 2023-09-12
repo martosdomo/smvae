@@ -2,7 +2,7 @@
 
 import random
 from torchvision import datasets
-from torch.utils.data import DataLoader
+#from torch.utils.data import DataLoader
 from torchvision import transforms
 
 # CONTRAST FUNCTIONS
@@ -33,7 +33,7 @@ def random_contrast(data, min_contrast, max_contrast,
 
 # CREATE TEST & TRAIN SETS
 
-def create_trainset(digit_instances, length,
+def create_trainset(digit_instances, full_length, valid_length,
                     min_contrast, max_contrast):
     transform = transforms.Compose([transforms.ToTensor()])
     trainset = datasets.MNIST(
@@ -43,12 +43,13 @@ def create_trainset(digit_instances, length,
         transform=transform
     )
     trainset = random_contrast(trainset, min_contrast, max_contrast,
-                               digit_instances, length)
-    #trainset = trainset[:length]
+                               digit_instances, full_length)
+    validation = trainset[-valid_length:]
+    trainset = trainset[:-valid_length]
 
-    return trainset
+    return trainset, validation
 
-def create_testset(digit_instances, min_contrast=0, max_contrast=1):
+def create_testset(digit_instances, min_contrast=0, max_contrast=1, length=10000):
     transform = transforms.Compose([transforms.ToTensor()])
     testset = datasets.MNIST(
         root='./data',
@@ -56,6 +57,6 @@ def create_testset(digit_instances, min_contrast=0, max_contrast=1):
         download=True,
         transform=transform
     )
-    testset = random_contrast(testset, min_contrast, max_contrast, digit_instances, 20000)
+    testset = random_contrast(testset, min_contrast, max_contrast, digit_instances, length)
 
     return testset
