@@ -104,7 +104,7 @@ class VAE(SuperVAE):
     def __init__(self, input_size, enc_hidden_sizes,
                  dec_hidden_sizes, latent_size, var=1,
                  enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
-        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, var, name='Standard VAE')
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, var, name='Standard_VAE')
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
@@ -121,7 +121,7 @@ class SMVAE_NORMAL(SuperVAE):
                 dec_hidden_sizes, latent_size, var=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
-                         latent_size, var, dimension_decrease=1, name='Normal SMVAE')
+                         latent_size, var, dimension_decrease=1, name='Normal_SMVAE')
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
@@ -143,7 +143,7 @@ class SMVAE_BETA(SuperVAE):
                 dec_hidden_sizes, latent_size, var=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
-                         latent_size, var, dimension_decrease=1, name='Beta SMVAE')
+                         latent_size, var, dimension_decrease=1, name='Beta_SMVAE')
     
     def get_params(self, mean, logvar):
         mu = mean[:,:-1]
@@ -197,7 +197,7 @@ class SMVAE_LOGNORMAL(SuperVAE):
                 dec_hidden_sizes, latent_size, var=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
-                         latent_size, var, dimension_decrease=1, name='Lognormal SMVAE')
+                         latent_size, var, dimension_decrease=1, name='Lognormal_SMVAE')
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
