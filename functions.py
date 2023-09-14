@@ -31,7 +31,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         epoch_reconstr = -1*running_reconstr / len(trainset)
         epoch_regul = -1*running_regul / len(trainset)
 
-        epoch_valid = ELBO(model, validation)[0]
+        epoch_valid = ELBO(model, validation)[0].detach().numpy()
 
         losses.append([epoch_loss, epoch_valid])
         checkpoints.append(checkpoint(model))
