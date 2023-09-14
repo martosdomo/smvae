@@ -37,7 +37,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         checkpoints.append(checkpoint(model))
 
         print('Epoch [%d/%d], ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
-              % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid))
+              % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid[0]))
     return losses, checkpoints
 
 def plot(data, str='Title'):
