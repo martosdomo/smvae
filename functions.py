@@ -46,7 +46,7 @@ def plot(data, str='Title'):
     plt.title(str)
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
-    plt.legend('Training ELBO', 'Validation ELBO')
+    plt.legend(['Training ELBO', 'Validation ELBO'])
 
 def grid(model, coordinates, rows=20, cols=20, title='Title'):
     #x = y = np.linspace(-range, range, resolution)
