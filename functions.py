@@ -36,7 +36,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         losses.append([epoch_loss, epoch_valid])
         checkpoints.append(checkpoint(model))
 
-        print('Epoch [%d/%d], ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
+        print('Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
               % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid))
     return losses, checkpoints
 
@@ -46,6 +46,7 @@ def plot(data, str='Title'):
     plt.title(str)
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
+    plt.legend('Training ELBO', 'Validation ELBO')
 
 def grid(model, coordinates, rows=20, cols=20, title='Title'):
     #x = y = np.linspace(-range, range, resolution)
