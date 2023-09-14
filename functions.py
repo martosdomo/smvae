@@ -34,7 +34,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         epoch_valid = ELBO(model, validation)[0].detach().numpy()
 
         losses.append([epoch_loss, epoch_valid])
-        checkpoints.append(checkpoint(model))
+        checkpoints.append(model.state_dict())
 
         print('Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
               % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid))

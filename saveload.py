@@ -1,7 +1,7 @@
 import torch
 from google.colab import files
 
-def checkpoint(model,
+def save_model(model, savename,
                input_size=784, enc_hidden_sizes=[256, 32], dec_hidden_sizes=[32, 256]):
     
     checkpoint = {'input_size': input_size,
@@ -10,12 +10,8 @@ def checkpoint(model,
                   'latent_size': model.latent_size,
                   'obs_noise': model.var,
                   'state_dict': model.state_dict()}
-    return checkpoint
-
-def save_model(checkpoint, savename):
-
     torch.save(checkpoint, savename)
-    files.download(savename)
+    #files.download(savename)
 
 def load_model(CLASS, filepath):
     checkpoint = torch.load(filepath)
