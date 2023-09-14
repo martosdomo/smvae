@@ -31,13 +31,13 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         epoch_reconstr = -1*running_reconstr / len(trainset)
         epoch_regul = -1*running_regul / len(trainset)
 
-        epoch_valid = ELBO(model, validation)
+        epoch_valid = ELBO(model, validation)[0]
 
         losses.append([epoch_loss, epoch_valid])
         checkpoints.append(checkpoint(model))
 
         print('Epoch [%d/%d], ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
-              % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid[0]))
+              % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid))
     return losses, checkpoints
 
 def plot(data, str='Title'):
