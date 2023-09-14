@@ -3,13 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 from torch.utils.data import DataLoader
+from saveload import *
 
 contrast_values = [0.2, 0.5, 0.8, 1]
 
-def train(model, trainset, learning_rate, batch_size, epochs):
+def train(model, trainset, validation, learning_rate, batch_size, epochs):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     trainloader = DataLoader(trainset, batch_size, shuffle=True)
-    losses = []
+    losses, checkpoints = [], []
     for epoch in range(epochs):
         running_loss = 0.0
         running_reconstr = 0.0
@@ -29,11 +30,15 @@ def train(model, trainset, learning_rate, batch_size, epochs):
         epoch_loss = -1*running_loss / len(trainset)
         epoch_reconstr = -1*running_reconstr / len(trainset)
         epoch_regul = -1*running_regul / len(trainset)
-        losses.append([epoch_loss, epoch_reconstr, epoch_regul])
 
-        print('Epoch [%d/%d], ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f'
-              % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul))
-    return losses
+        epoch_valid = ELBO(model, validation)
+
+        losses.append([epoch_loss, epoch_valid])
+        checkpoints.append(checkpoint(model))
+
+        print('Epoch [%d/%d], ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
+              % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid))
+    return losses, checkpoints
 
 def plot(data, str='Title'):
     plt.figure()
