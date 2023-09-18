@@ -37,7 +37,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         losses.append([epoch_loss, epoch_valid])
         checkpoints.append(model.state_dict())
 
-        if epoch_valid > checkpoints[max_validation]*1.01:
+        if epoch_valid > losses[max_validation][1]*1.01:
             max_validation = epoch
 
         print('Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
