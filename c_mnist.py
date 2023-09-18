@@ -33,29 +33,30 @@ def random_contrast(data, min_contrast, max_contrast,
 
 # CREATE TEST & TRAIN SETS
 
-def create_trainset(digit_instances, full_length, valid_length,
+def create_trainset(dataset, digit_instances, full_length, valid_length,
                     min_contrast, max_contrast):
     transform = transforms.Compose([transforms.ToTensor()])
-    trainset = datasets.MNIST(
+    trainset = dataset(
         root='./data',
         train=True,
-        download=True,
-        transform=transform
+        download=True
     )
+    trainset = trainset[:-valid_length]
+    validation = trainset[-valid_length:]
+
     trainset = random_contrast(trainset, min_contrast, max_contrast,
                                digit_instances, full_length)
-    validation = trainset[-valid_length:]
-    trainset = trainset[:-valid_length]
+    validation = random_contrast(validation, 0, 1, digit_instances, valid_length)
+
 
     return trainset, validation
 
-def create_testset(digit_instances, min_contrast=0, max_contrast=1, length=10000):
+def create_testset(dataset, digit_instances, min_contrast=0, max_contrast=1, length=10000):
     transform = transforms.Compose([transforms.ToTensor()])
-    testset = datasets.MNIST(
+    testset = dataset(
         root='./data',
         train=False,
-        download=True,
-        transform=transform
+        download=True
     )
     testset = random_contrast(testset, min_contrast, max_contrast, digit_instances, length)
 
