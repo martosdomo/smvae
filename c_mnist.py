@@ -41,13 +41,12 @@ def create_trainset(dataset, digit_instances, full_length, valid_length,
         train=True,
         download=True
     )
-    trainset = trainset[:-valid_length]
-    validation = trainset[-valid_length:]
 
     trainset = random_contrast(trainset, min_contrast, max_contrast,
                                digit_instances, full_length)
-    validation = random_contrast(validation, 0, 1, digit_instances, valid_length)
-
+    #validation = random_contrast(validation, 0, 1, digit_instances, valid_length)
+    trainset = trainset[:-valid_length]
+    validation = trainset[-valid_length:]
 
     return trainset, validation
 
