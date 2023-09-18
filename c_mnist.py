@@ -39,7 +39,8 @@ def create_trainset(dataset, digit_instances, full_length, valid_length,
     trainset = dataset(
         root='./data',
         train=True,
-        download=True
+        download=True,
+        transform=transform
     )
 
     trainset = random_contrast(trainset, min_contrast, max_contrast,
@@ -55,7 +56,8 @@ def create_testset(dataset, digit_instances, min_contrast=0, max_contrast=1, len
     testset = dataset(
         root='./data',
         train=False,
-        download=True
+        download=True,
+        transform=transform
     )
     testset = random_contrast(testset, min_contrast, max_contrast, digit_instances, length)
 
