@@ -11,6 +11,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     trainloader = DataLoader(trainset, batch_size, shuffle=True)
     losses, checkpoints = [], []
+    max_validation = 0
     for epoch in range(epochs):
         running_loss = 0.0
         running_reconstr = 0.0
@@ -36,9 +37,12 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         losses.append([epoch_loss, epoch_valid])
         checkpoints.append(model.state_dict())
 
+        if epoch_valid > checkpoints[max_validation]*1.01:
+            max_validation = epoch
+
         print('Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
               % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid))
-    return losses, checkpoints
+    return losses, checkpoints, max_validation
 
 def plot(data, str='Title'):
     plt.figure()
