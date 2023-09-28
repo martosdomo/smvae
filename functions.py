@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 from torch.utils.data import DataLoader
-from smvae.saveload import *
+import random
+#from smvae.saveload import *
 
 contrast_values = [0.2, 0.5, 0.8, 1]
 
@@ -12,6 +13,8 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
     trainloader = DataLoader(trainset, batch_size, shuffle=True)
     losses, checkpoints = [], []
     max_validation = 0
+    print(model.name, '| sigma =', model.var)
+
     for epoch in range(epochs):
         running_loss = 0.0
         running_reconstr = 0.0
@@ -37,7 +40,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         losses.append([epoch_loss, epoch_valid])
         checkpoints.append(model.state_dict())
 
-        if epoch_valid > losses[max_validation][1]*1.01:
+        if epoch_valid > losses[max_validation][1]*1.02:
             max_validation = epoch
 
         print('Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
@@ -180,3 +183,11 @@ def ELBO(model, testset, batch_size=1): #testset batch_size = 1
     return epoch_loss, epoch_reconstr, epoch_regul
 
     #return 'ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f' % (epoch_loss, epoch_reconstr, epoch_regul)
+
+def set_seed(random_seed):
+    random.seed(random_seed)
+    torch.manual_seed(random_seed)
+    torch.cuda.manual_seed(random_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    return None

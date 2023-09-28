@@ -1,7 +1,7 @@
 # CONTRAST AUGMENTED MNIST DATASET
 
 import random
-from torchvision import datasets
+#from torchvision import datasets
 #from torch.utils.data import DataLoader
 from torchvision import transforms
 
@@ -16,7 +16,7 @@ def fixed_contrast(data, c_list):
     return new_data
 
 def random_contrast(data, min_contrast, max_contrast,
-                    digit_instances, length):
+                    length, digit_instances=1):
     new_data = []
     size = 0
 
@@ -33,8 +33,8 @@ def random_contrast(data, min_contrast, max_contrast,
 
 # CREATE TEST & TRAIN SETS
 
-def create_trainset(dataset, digit_instances, full_length, valid_length,
-                    min_contrast, max_contrast):
+def create_trainset(dataset, full_length,
+                    min_contrast, max_contrast, digit_instances=1):
     transform = transforms.Compose([transforms.ToTensor()])
     trainset = dataset(
         root='./data',
@@ -45,13 +45,9 @@ def create_trainset(dataset, digit_instances, full_length, valid_length,
 
     trainset = random_contrast(trainset, min_contrast, max_contrast,
                                digit_instances, full_length)
-    #validation = random_contrast(validation, 0, 1, digit_instances, valid_length)
-    trainset = trainset[:-valid_length]
-    validation = trainset[-valid_length:]
+    return trainset
 
-    return trainset, validation
-
-def create_testset(dataset, digit_instances, min_contrast=0, max_contrast=1, length=10000):
+def create_testset(dataset, min_contrast=0, max_contrast=1, length=10000, digit_instances=1):
     transform = transforms.Compose([transforms.ToTensor()])
     testset = dataset(
         root='./data',
@@ -61,4 +57,7 @@ def create_testset(dataset, digit_instances, min_contrast=0, max_contrast=1, len
     )
     testset = random_contrast(testset, min_contrast, max_contrast, digit_instances, length)
 
-    return testset
+    validation = testset[:5000]
+    testset = testset[5000:]
+
+    return testset, validation

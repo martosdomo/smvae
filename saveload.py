@@ -1,5 +1,6 @@
 import torch
-from google.colab import files
+import os
+#from google.colab import files
 
 def save_model(model, savename,
                input_size=784, enc_hidden_sizes=[256, 32], dec_hidden_sizes=[32, 256]):
@@ -10,7 +11,7 @@ def save_model(model, savename,
                   'latent_size': model.latent_size,
                   'obs_noise': model.var,
                   'state_dict': model.state_dict()}
-    torch.save(checkpoint, savename)
+    torch.save(checkpoint, 'C:/Users/marto/Documents/smvae/'+savename)
     #files.download(savename)
 
 def load_model(CLASS, filepath):
@@ -24,3 +25,11 @@ def load_model(CLASS, filepath):
     model.load_state_dict(checkpoint['state_dict'])
 
     return model
+
+def load_folder(CLASS, model_type):
+    models = []
+    directory = 'C:/Users/marto/Documents/smvae/'+model_type
+    print(directory)
+    for filename in os.listdir(directory):
+        models.append(load_model(CLASS, directory+'/'+filename))
+    return models

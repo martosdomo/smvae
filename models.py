@@ -101,10 +101,11 @@ class SuperVAE(nn.Module):
 
 
 class VAE(SuperVAE):
-    def __init__(self, input_size, enc_hidden_sizes,
-                 dec_hidden_sizes, latent_size, var=1,
-                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
+    def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
+                dec_hidden_sizes=[32, 256], latent_size=10, var=0.01,
+                enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, var, name='Standard_VAE')
+        self.type = 'standard'
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
@@ -117,11 +118,12 @@ class VAE(SuperVAE):
         return x_recon, mu, var
         
 class SMVAE_NORMAL(SuperVAE):
-    def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size, var=1,
+    def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
+                dec_hidden_sizes=[32, 256], latent_size=10, var=0.01,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name='Normal_SMVAE')
+        self.type = 'normal'
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
@@ -139,12 +141,13 @@ class SMVAE_NORMAL(SuperVAE):
             return x_recon, mu, var    
 
 class SMVAE_BETA(SuperVAE):    
-    def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size, var=1,
+    def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
+                dec_hidden_sizes=[32, 256], latent_size=10, var=0.01,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name='Beta_SMVAE')
-    
+        self.type = 'beta'
+
     def get_params(self, mean, logvar):
         mu = mean[:,:-1]
         var = logvar[:,:-1]
@@ -193,8 +196,8 @@ class SMVAE_BETA(SuperVAE):
         return kl_normal + kl_beta
 
 class SMVAE_LOGNORMAL(SuperVAE):
-    def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size, var=1,
+    def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
+                dec_hidden_sizes=[32, 256], latent_size=10, var=1,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name='Lognormal_SMVAE')
