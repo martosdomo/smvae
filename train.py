@@ -9,7 +9,8 @@ from torchvision.datasets import MNIST, FashionMNIST
 def main():
 
     # random seed
-    set_seed(0)
+    random_seed = 0
+    set_seed(random_seed)
 
     # hyperparams
     BATCH_SIZE = 32
@@ -40,7 +41,8 @@ def main():
     for dataset in datasets:
         models = [VAE(), SMVAE_NORMAL(), SMVAE_BETA()]
         for model in models:
-            model.name+='_%d_%.1f_%.1f' % (dataset[3][0], dataset[3][1][0], dataset[3][1][1])
+            # model.name_datasetsize_mincontrast_maxcontrast_randomseed
+            model.name+='_%d_%.1f_%.1f_seed%d' % (dataset[3][0], dataset[3][1][0], dataset[3][1][1], random_seed)
             myloss, mycheckpoints, max_validation = train(model, dataset[0], dataset[1], 
                                                           LEARNING_RATE, BATCH_SIZE, NUM_EPOCHS)
             
