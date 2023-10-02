@@ -25,9 +25,10 @@ def main():
     evaluations = {}
     for model in models:
         elbo, reconstr, regul = ELBO(model, testset)
-        evaluations[model.name] = [elbo, reconstr, regul]
+        evaluations[model.name] = [elbo.item(), reconstr.item(), regul.item()]
+        print(model.name, evaluations[model.name])
 
-    save_file(evaluations, 'evaluations_'+str(random_seed)+'.txt')
+    save_file(evaluations, f'evaluations_{random_seed}.txt')
 
 if __name__ == '__main__':
     main()

@@ -35,7 +35,6 @@ def load_model(CLASS, filepath):
 def load_folder(CLASS, model_type, random_seed):
     models = []
     directory = ROOT+model_type
-    print(directory)
     for filename in os.listdir(directory):
         if filename.endswith(str(random_seed)+'.pth'):
             models.append(load_model(CLASS, directory+'/'+filename))

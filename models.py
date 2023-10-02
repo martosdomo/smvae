@@ -69,7 +69,7 @@ class SuperVAE(nn.Module):
         self.latent_size = latent_size
         self.name = name
         self.loss = (0,0,0)
-        self.var = var # observation noise hyperparameter
+        self.var = var # observation noise hyperparameter, sigma**2
 
     def reparameterize(self, mu, var, 
                        ind_bias=False, distribution=None, alpha=0, beta=0):
@@ -109,10 +109,14 @@ class VAE(SuperVAE):
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
+    
+    def get_params(self, mean, logvar):
+        var = torch.exp(0.5*logvar)
+        return mean, var
 
     def forward(self, x):
         mu, logvar = self.encoder(x)
-        var = torch.exp(0.5*logvar)
+        mu, var = self.get_params(mu, logvar)
         z = self.reparameterize(mu, var)
         x_recon = self.decoder(z)
         return x_recon, mu, var
@@ -127,18 +131,22 @@ class SMVAE_NORMAL(SuperVAE):
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
+    
+    def get_params(self, mean, logvar):
+        var = torch.exp(0.5*logvar)
+        return mean, var
 
     def forward(self, x):
-            mu, logvar = self.encoder(x)
-            var = torch.exp(0.5*logvar)
-            rep = self.reparameterize(mu, var)
-            z = rep[:, :self.latent_size-1]
-            c = rep[:, self.latent_size-1]
-            c = c.reshape(-1, 1)
-            c = torch.sigmoid(c)
-            x_recon = self.decoder(z)
-            x_recon = x_recon*c
-            return x_recon, mu, var    
+        mu, logvar = self.encoder(x)
+        mu, var = self.get_params(mu, logvar)
+        rep = self.reparameterize(mu, var)
+        z = rep[:, :self.latent_size-1]
+        c = rep[:, self.latent_size-1]
+        c = c.reshape(-1, 1)
+        c = torch.sigmoid(c)
+        x_recon = self.decoder(z)
+        x_recon = x_recon*c
+        return x_recon, mu, var    
 
 class SMVAE_BETA(SuperVAE):    
     def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
@@ -149,16 +157,27 @@ class SMVAE_BETA(SuperVAE):
         self.type = 'beta'
 
     def get_params(self, mean, logvar):
+        '''
+            Get mean and variance of the Normal and Beta dimensions in each dimension
+        '''
         mu = mean[:,:-1]
         var = logvar[:,:-1]
         var = torch.exp(0.5*var)
-        
-        alpha = torch.exp(mean[:,-1])
-        beta = torch.exp(logvar[:,-1])
 
-        return mu, var, alpha, beta
+        beta_mean = torch.sigmoid(mean[:,-1])
+        beta_sum = torch.exp(logvar[:,-1])
 
-    def get_params_alter(self, mean, logvar):
+        alpha = beta_mean*beta_sum
+        beta = beta_sum - alpha
+
+        beta_var = (alpha*beta) / ((alpha+beta+1) * (alpha+beta)**2)
+
+        return mu, var, alpha, beta        
+
+    def get_params_forward(self, mean, logvar):
+        '''
+            Get parameters for the Normal and Beta distributions
+        '''
         mu = mean[:,:-1]
         var = logvar[:,:-1]
         var = torch.exp(0.5*var)
@@ -173,7 +192,7 @@ class SMVAE_BETA(SuperVAE):
 
     def forward(self, x):
         mean, logvar = self.encoder(x)
-        mu, var, alpha, beta = self.get_params_alter(mean, logvar)
+        mu, var, alpha, beta = self.get_params_forward(mean, logvar)
         z, c = self.reparameterize(mu, var, True, Beta, alpha, beta)
         c = c.reshape(-1, 1) # transpose
         x_recon = self.decoder(z)

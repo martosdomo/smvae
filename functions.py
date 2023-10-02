@@ -116,55 +116,26 @@ def barplot(data, ylabel='ylabel', title='Title'):
     plt.title(title)
     plt.show()
 
-def get_avereges(model, LATENT_SIZE, testset):
+def get_averages(model, testset):
 
-    # PARAMS
-    n = 10000
-    contrasts = len(contrast_values)
-    post_sum = torch.zeros(4, 2, LATENT_SIZE)
-    dif_chars = n // contrasts
+    means, vars, contrasts = [], [], []
 
-    # REGRESSION DATA
-    cs = torch.zeros(n)
-    means = torch.zeros(n,LATENT_SIZE)
-    vars = torch.zeros(n,LATENT_SIZE)
-    #means = vars = torch.zeros(n, LATENT_SIZE)
+    for im in testset:
+        # encoder[0/1][0]: [0/1] - mean/var. második 0 a grad info elhagyása
+        mean = model.encoder(im[0])[0][0]
+        logvar = model.encoder(im[0])[1][0] 
 
-    # GET POSTERIOR AVEREGES AND REGRESSION DATA
+        # im[1]: (digit, contrast)
+        contrast = im[1][1]
 
-    for i in range(0, n, contrasts):
-        for c in range(contrasts):
-            # mean
-            # post_sum[c][0]: c a megfelelő kontraszt, 0 a mean értékek
-            # encoder[0][0]: 0 a mean érték, második 0 a grad info elhagyása
-            mean = model.encoder(testset[i+c][0])[0][0]
-            #mean[2] = torch.exp(mean[2])
+        mean, var = model.get_params(mean, logvar) # TO DO returns mean,var,alpha,beta in case of BetaSMVAE
 
-            # var
-            logvar = model.encoder(testset[i+c][0])[1][0]
-            var = torch.exp(0.5*logvar)
-            #var[2] = torch.exp(var[2])
+        means.append(mean)
+        vars.append(var)
+        contrasts.append(contrast)
+    
+    return means, vars, contrasts
 
-            # for lognormal
-            """mean_logn = torch.exp(mean[2] + var[2]**2/2)
-            var_logn = torch.sqrt(torch.exp(2*mean[2] + 2*var[2]**2) - torch.exp(2*mean[2] + var[2]**2))
-            mean[2] = mean_logn
-            var[2] = var_logn"""
-
-            # for gamma
-            mean[2] = torch.exp(mean[2])
-
-            post_sum[c][0] += mean
-            post_sum[c][1] += var
-
-            # REGRESSION DATA
-            cs[i+c] = contrast_values[c]
-            means[i+c] = mean#[2]
-            vars[i+c] = var#[2]
-
-    post_mean = post_sum / dif_chars
-
-    return post_mean, cs, means, vars
 
 def ELBO(model, testset, batch_size=1): #testset batch_size = 1
     running_loss = 0.0
@@ -191,3 +162,10 @@ def set_seed(random_seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     return None
+
+def get_models(sigmas, *args):
+    models = []
+    for sigma in sigmas:
+        for model in args:
+            models.append(model(var=sigma))
+    return models

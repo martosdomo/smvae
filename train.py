@@ -28,21 +28,15 @@ def main():
             testset, validation = create_testset(MNIST, contrast[0], contrast[1])
             datasets.append([trainset, validation, testset, [size, contrast]])
 
-    # model
-    #sigmas = [1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]
-    '''sigmas = [0.01]
-    models = []
-    for sigma in sigmas:
-        models.append(VAE(var=sigma))
-        models.append(SMVAE_NORMAL(var=sigma))
-        models.append(SMVAE_BETA(var=sigma))'''
+    # obs_nois values
+    sigmas = [1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]
     
     # train
     for dataset in datasets:
-        models = [VAE(), SMVAE_NORMAL(), SMVAE_BETA()]
+        models = get_models(sigmas, VAE, SMVAE_NORMAL, SMVAE_BETA)
         for model in models:
-            # model.name_sizeofdata_mincontrast_maxcontrast_randomseed
-            model.name+='_%d_%.1f_%.1f_seed%d' % (dataset[3][0], dataset[3][1][0], dataset[3][1][1], random_seed)
+            # model.name_sizeofdata_mincontrast_maxcontrast_obsnoise_randomseed
+            model.name+=f'_{dataset[3][0]}_{dataset[3][1][0]}_{dataset[3][1][1]}_var{model.var}_seed{random_seed}'
             myloss, mycheckpoints, max_validation = train(model, dataset[0], dataset[1], 
                                                           LEARNING_RATE, BATCH_SIZE, NUM_EPOCHS)
             
