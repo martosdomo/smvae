@@ -32,11 +32,12 @@ def load_model(CLASS, filepath):
 
     return model
 
-def load_folder(CLASS, model_type):
+def load_folder(CLASS, model_type, random_seed):
     models = []
     directory = ROOT+model_type
     print(directory)
     for filename in os.listdir(directory):
-        models.append(load_model(CLASS, directory+'/'+filename))
+        if filename.endswith(str(random_seed)+'.pth'):
+            models.append(load_model(CLASS, directory+'/'+filename))
     return models
 

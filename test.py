@@ -16,15 +16,14 @@ def main():
     testset = create_testset(MNIST, return_validation=False)
 
     # load models
-    models_standard = load_folder(VAE, 'standard')
-    models_normal = load_folder(SMVAE_NORMAL, 'normal')
-    models_beta = load_folder(SMVAE_BETA, 'beta')
+    models_standard = load_folder(VAE, 'standard', random_seed)
+    models_normal = load_folder(SMVAE_NORMAL, 'normal', random_seed)
+    models_beta = load_folder(SMVAE_BETA, 'beta', random_seed)
     models = models_standard + models_normal + models_beta
 
     # evaluate
     evaluations = {}
-    for model in models: 
-        print(model.name)
+    for model in models:
         elbo, reconstr, regul = ELBO(model, testset)
         evaluations[model.name] = [elbo, reconstr, regul]
 
