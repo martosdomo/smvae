@@ -15,7 +15,7 @@ def main():
     # hyperparams
     BATCH_SIZE = 32
     LEARNING_RATE = 0.5*1e-3  
-    NUM_EPOCHS = 1
+    NUM_EPOCHS = 100
 
     # dataset
     #sizes = [60000, 20000, 6000, 2000, 600]
