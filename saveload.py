@@ -2,7 +2,7 @@ import torch
 import os
 #from google.colab import files
 
-ROOT = 'C:/Users/marto/Documents/smvae/' # has to have the subfolders: standard, normal, beta & evaluation
+ROOT = '//mnt/smvae/' # has to have the subfolders: standard, normal, beta & evaluation
 
 def save_model(model, savename,
                input_size=784, enc_hidden_sizes=[256, 32], dec_hidden_sizes=[32, 256]):

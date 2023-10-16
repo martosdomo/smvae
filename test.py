@@ -28,7 +28,7 @@ def main():
         evaluations[model.name] = [elbo.item(), reconstr.item(), regul.item()]
         print(model.name, evaluations[model.name])
 
-    save_file(evaluations, f'evaluations_{random_seed}.txt')
+    save_file(evaluations, 'evaluations_{}.txt'.format(random_seed))
 
 if __name__ == '__main__':
     main()

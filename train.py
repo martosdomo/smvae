@@ -15,11 +15,11 @@ def main():
     # hyperparams
     BATCH_SIZE = 32
     LEARNING_RATE = 0.5*1e-3  
-    NUM_EPOCHS = 10
+    NUM_EPOCHS = 1
 
     # dataset
     #sizes = [60000, 20000, 6000, 2000, 600]
-    sizes = [600]
+    sizes = [60000]
     contrasts = [[0, 1], [0, 0.2], [0.8, 1]]
     datasets = []
     for size in sizes:
@@ -36,7 +36,7 @@ def main():
         models = get_models(sigmas, VAE, SMVAE_NORMAL, SMVAE_BETA)
         for model in models:
             # model.name_sizeofdata_mincontrast_maxcontrast_obsnoise_randomseed
-            model.name+=f'_{dataset[3][0]}_{dataset[3][1][0]}_{dataset[3][1][1]}_var{model.var}_seed{random_seed}'
+            model.name += '_{}_{}_{}_var{}_seed{}'.format(dataset[3][0], dataset[3][1][0], dataset[3][1][1], model.var, random_seed)
             myloss, mycheckpoints, max_validation = train(model, dataset[0], dataset[1], 
                                                           LEARNING_RATE, BATCH_SIZE, NUM_EPOCHS)
             
