@@ -16,7 +16,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
     #early stopping 
     max_validation = 0
     patience = 10
-    eps=0.02
+    eps=0.01
     
     print(model.name, '| sigma =', model.var)
 
