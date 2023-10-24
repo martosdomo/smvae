@@ -18,34 +18,38 @@ def main():
     NUM_EPOCHS = 100
 
     # dataset
+    MNIST.name, FashionMNIST.name = 'MNIST', 'FashionMNIST'
+    DATA = FashionMNIST
     #sizes = [60000, 20000, 6000, 2000, 600]
     sizes = [60000]
     contrasts = [[0, 1], [0, 0.2], [0.8, 1]]
     datasets = []
     for size in sizes:
         for contrast in contrasts:
-            trainset = create_trainset(MNIST, size, contrast[0], contrast[1])
-            testset, validation = create_testset(MNIST, contrast[0], contrast[1])
+            trainset = create_trainset(DATA, size, contrast[0], contrast[1])
+            testset, validation = create_testset(DATA, 0, 1)
             datasets.append([trainset, validation, testset, [size, contrast]])
 
     # obs_nois values
     sigmas = [1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]
     
     # train
+    full_logs = []
     for dataset in datasets:
         models = get_models(sigmas, VAE, SMVAE_NORMAL, SMVAE_BETA)
         for model in models:
             # model.name_sizeofdata_mincontrast_maxcontrast_obsnoise_randomseed
-            model.name += '_{}_{}_{}_var{}_seed{}'.format(dataset[3][0], dataset[3][1][0], dataset[3][1][1], model.var, random_seed)
-            myloss, mycheckpoints, max_validation = train(model, dataset[0], dataset[1], 
+            model.name += '{}_{}_{}_{}_var{}_seed{}'.format(DATA.name, dataset[3][0], dataset[3][1][0], dataset[3][1][1], model.var, random_seed)
+            myloss, mycheckpoints, max_validation, logs = train(model, dataset[0], dataset[1], 
                                                           LEARNING_RATE, BATCH_SIZE, NUM_EPOCHS)
             
             print('Max validation: ', max_validation)
             model.load_state_dict(mycheckpoints[max_validation])
-
+            
+            full_logs.append(logs)
             save_model(model, model.type+'/'+model.name+'.pth')
             plot(myloss, model.name)
-            
+    torch.save(full_logs, '//mnt/smvae/evaluation/logs_seed{}.txt'.format(random_seed))
 
 if __name__ == '__main__':
     main()

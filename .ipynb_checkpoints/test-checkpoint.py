@@ -12,8 +12,9 @@ def main():
     random_seed = 0
     set_seed(random_seed)
 
-    # load trainset
-    testset = create_testset(MNIST, return_validation=False)
+    # load dataset
+    dataset = FashionMNIST
+    testset = create_testset(dataset, return_validation=False)
 
     # load models
     models_standard = load_folder(VAE, 'standard', random_seed)

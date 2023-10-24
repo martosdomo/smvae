@@ -11,7 +11,7 @@ contrast_values = [0.2, 0.5, 0.8, 1]
 def train(model, trainset, validation, learning_rate, batch_size, epochs):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     trainloader = DataLoader(trainset, batch_size, shuffle=True)
-    losses, checkpoints = [], []
+    losses, checkpoints, logs = [], [], []
     
     #early stopping 
     max_validation = 0
@@ -19,6 +19,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
     eps=0.01
     
     print(model.name, '| sigma =', model.var)
+    logs.append(model.name)
 
     for epoch in range(epochs):
         running_loss = 0.0
@@ -46,14 +47,17 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         checkpoints.append(model.state_dict())
         
         # return if not improved {eps} in the last {patience} epochs
-        if abs(epoch_valid) > abs(losses[max_validation][1])*(1+eps):
+        prev_max = losses[max_validation][1]
+        if epoch_valid > prev_max + eps*abs(prev_max):
             max_validation = epoch
         if max_validation < (epoch-10):
-            return losses, checkpoints, max_validation
+            return losses, checkpoints, max_validation, logs
         
-        print('Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f'
-              % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid))
-    return losses, checkpoints, max_validation
+        print_log = 'Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f' % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid)
+        print(print_log)
+        logs.append(print_log)
+        
+    return losses, checkpoints, max_validation, logs
 
 def plot(data, str='Title'):
     plt.figure()
