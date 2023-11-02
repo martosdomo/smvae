@@ -14,9 +14,10 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
     losses, checkpoints, logs = [], [], []
     
     #early stopping 
+    training_steps = 10**7
     max_validation = 0
-    patience = 10
-    eps=0.01
+    patience = 20
+    eps=0
     
     print(model.name, '| sigma =', model.var)
     logs.append(model.name)
@@ -40,17 +41,20 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         epoch_loss = -1*running_loss / len(trainset)
         epoch_reconstr = -1*running_reconstr / len(trainset)
         epoch_regul = -1*running_regul / len(trainset)
-
+        
         epoch_valid = ELBO(model, validation)[0].detach().numpy()
 
         losses.append([epoch_loss, epoch_valid])
         checkpoints.append(model.state_dict())
         
+        if (epoch+1)*len(trainset) > training_steps:
+            return losses, checkpoints, max_validation, logs
+        
         # return if not improved {eps} in the last {patience} epochs
         prev_max = losses[max_validation][1]
         if epoch_valid > prev_max + eps*abs(prev_max):
             max_validation = epoch
-        if max_validation < (epoch-10):
+        if max_validation < (epoch-patience):
             return losses, checkpoints, max_validation, logs
         
         print_log = 'Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f' % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid)

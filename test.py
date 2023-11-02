@@ -9,12 +9,13 @@ from torchvision.datasets import MNIST, FashionMNIST
 
 def main():
     # random seed
-    random_seed = 0
+    random_seed = 1
     set_seed(random_seed)
 
     # load dataset
-    dataset = FashionMNIST
-    testset = create_testset(dataset, return_validation=False)
+    MNIST.name, FashionMNIST.name = 'mnist', 'fashion'
+    DATA = MNIST
+    testset = create_testset(DATA, return_validation=False)
 
     # load models
     models_standard = load_folder(VAE, 'standard', random_seed)
@@ -29,7 +30,7 @@ def main():
         evaluations[model.name] = [elbo.item(), reconstr.item(), regul.item()]
         print(model.name, evaluations[model.name])
 
-    save_file(evaluations, 'evaluations_{}.txt'.format(random_seed))
+    save_file(evaluations, 'eval_{}_seed{}.txt'.format(DATA.name, random_seed))
 
 if __name__ == '__main__':
     main()
