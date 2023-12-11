@@ -30,7 +30,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
             inputs, _ = data
             optimizer.zero_grad()
             x_recon, mu, var = model(inputs)
-            #print(mu, var) # WORKING
+            #print(x_recon, mu, var) # WORKING
             loss, reconstr, regul = model.loss_function(x_recon, inputs, mu, var, batch_size)
             #print('loss: ', loss, reconstr, regul)
             loss.backward()
@@ -57,7 +57,7 @@ def train(model, trainset, validation, learning_rate, batch_size, epochs):
         if max_validation < (epoch-patience):
             return losses, checkpoints, max_validation, logs
         
-        print_log = 'Epoch [%d/%d], Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f' % (epoch+1, epochs, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid)
+        print_log = 'Epoch %d, Training ELBO: %.3f, Reconstruction: %.3f, Regularization: %.3f || Validation ELBO: %.3f' % (epoch+1, epoch_loss, epoch_reconstr, epoch_regul, epoch_valid)
         print(print_log)
         logs.append(print_log)
         
@@ -99,59 +99,55 @@ def compare(model, testset, n, k=0, title='Title'):
 
     plt.show()
 
-def barplot(data, ylabel='ylabel', title='Title'):
-    z1_group = data[:,0].detach().numpy().flatten()
-    z2_group = data[:,1].detach().numpy().flatten()
-    c_group = data[:,2].detach().numpy().flatten()
-
-    axis_labels = ['c = ' + str(contrast_values[i]) for i in range(4)]
-
-    positions = np.array([i for i in range(0, 13, 4)])
-    z1_pos = positions
-    z2_pos = positions + 1
-    c_pos = positions + 2
-
-    fig, ax = plt.subplots()
-
-    plt.bar(z1_pos, z1_group, label='$z_1$', color='forestgreen')
-    plt.bar(z2_pos, z2_group, label='$z_2$', color='limegreen')
-    plt.bar(c_pos, c_group, label='$c$', color='r')
-
-    # Assigning group labels to the x-axis
-    plt.xticks([1+4*d for d in range(4)], axis_labels)
-
-    # Adding legend
-    plt.legend()
-
-    plt.grid(axis='y')
-    ax.set_axisbelow(True)
-
-    # Display the bar chart
-    plt.xlabel('Kontraszt értékek')
-    plt.ylabel(ylabel)
-    plt.title(title)
-    plt.show()
-
 def get_averages(model, testset):
 
-    means, vars, contrasts = [], [], []
-
-    for im in testset:
+    means = torch.zeros(len(testset), model.latent_size)
+    vars = torch.zeros(len(testset), model.latent_size)
+    contrasts = torch.zeros(len(testset))
+    
+    for idx, im in enumerate(testset):
         # encoder[0/1][0]: [0/1] - mean/var. második 0 a grad info elhagyása
         mean = model.encoder(im[0])[0][0]
         logvar = model.encoder(im[0])[1][0] 
 
-        # im[1]: (digit, contrast)
+        # im[1]: tuple(digit, contrast)
         contrast = im[1][1]
 
-        mean, var = model.get_params(mean, logvar) # TO DO returns mean,var,alpha,beta in case of BetaSMVAE
-
-        means.append(mean)
-        vars.append(var)
-        contrasts.append(contrast)
+        mean, var = model.get_params(mean, logvar) 
+        
+        means[idx] = mean
+        vars[idx] = var
+        contrasts[idx] = contrast
     
-    return means, vars, contrasts
+    return means.detach(), vars.detach(), contrasts.detach()
 
+def get_contr_averages(model, testset):
+    
+    means = torch.zeros(len(testset), model.latent_size+1)
+    vars = torch.zeros(len(testset), model.latent_size)
+    contrasts = torch.zeros(len(testset))
+    
+    for idx, im in enumerate(testset):
+        x = im[0]
+        x = x.view(-1, model.input_size)
+        c = model.contrast_inference(x)
+        x = x/c
+        # encoder[0/1][0]: [0/1] - mean/var. második 0 a grad info elhagyása
+        latent_pars = model.encoder(x)
+        mean = latent_pars[0][0]
+        logvar = latent_pars[1][0]
+
+        # im[1]: tuple(digit, contrast)
+        contrast = im[1][1]
+
+        mean, var = model.get_params(mean, logvar)
+        mean = torch.cat((mean, c.view(-1)))
+        
+        means[idx] = mean
+        vars[idx] = var
+        contrasts[idx] = contrast
+    
+    return means.detach(), vars.detach(), contrasts.detach()
 
 def ELBO(model, testset, batch_size=1): #testset batch_size = 1
     running_loss = 0.0
@@ -179,9 +175,15 @@ def set_seed(random_seed):
     torch.backends.cudnn.benchmark = False
     return None
 
-def get_models(sigmas, *args):
+def get_models(sigmas, *args, is_deep=False):
     models = []
     for sigma in sigmas:
         for model in args:
-            models.append(model(var=sigma))
+            if is_deep:
+                models.append(model(var=sigma, enc_hidden_sizes=[256,100,32]))
+            else:
+                models.append(model(var=sigma))
     return models
+
+def label_selective(data, category):
+    return [data[i] for i in range(len(data)) if data[i][1][0]==category]

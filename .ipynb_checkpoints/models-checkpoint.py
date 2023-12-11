@@ -52,9 +52,22 @@ class Decoder(nn.Module):
         for layer in self.hidden_layers:
             z = self.nonlinearity(layer(z))
         x_recon = torch.sigmoid(self.output_layer(z))
+        #x_recon = self.output_layer(z)
         return x_recon
 
-
+class ContrastInference(nn.Module):
+    def __init__(self, input_size=784, output_size=1, nonlinearity=nn.Sigmoid()):
+        super().__init__()
+        self.fc = nn.Linear(input_size, output_size)
+        self.nonlinearity = nonlinearity
+        self.input_size = input_size
+        
+    def forward(self, x):
+        x = x.view(-1, self.input_size)
+        x = self.fc(x)
+        x = self.nonlinearity(x)
+        return x
+    
 class SuperVAE(nn.Module):
     def __init__(self, input_size, enc_hidden_sizes, 
                  dec_hidden_sizes, latent_size,
@@ -103,9 +116,10 @@ class SuperVAE(nn.Module):
 class VAE(SuperVAE):
     def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
                 dec_hidden_sizes=[32, 256], latent_size=10, var=0.01,
-                enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
-        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, var, name='Standard_VAE')
-        self.type = 'standard'
+                enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU(),
+                myname='Standard_VAE', mytype='standard'):
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, var, name=myname)
+        self.type = mytype
 
     def KL_divergence(self, mu, var):
         return self.KL_normal(mu, var)
@@ -119,6 +133,31 @@ class VAE(SuperVAE):
         mu, var = self.get_params(mu, logvar)
         z = self.reparameterize(mu, var)
         x_recon = self.decoder(z)
+        #x_recon = torch.sigmoid(x_recon)
+        return x_recon, mu, var
+        
+class VAE_CONTRAST_INFERENCE(VAE):
+    def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
+                dec_hidden_sizes=[32, 256], latent_size=10, var=0.01,
+                enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
+        self.type = 'contrast_inference'
+        super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, latent_size, var, 
+                         myname='ContrastInference_VAE', mytype=self.type)
+        self.contrast_inference = ContrastInference()
+
+    def get_params(self, mean, logvar):
+        var = torch.exp(0.5*logvar)
+        return mean, var        
+        
+    def forward(self, x):
+        x = x.view(-1, self.input_size)
+        c = self.contrast_inference(x)
+        x = x/c
+        mu, logvar = self.encoder(x)
+        mu, var = self.get_params(mu, logvar)
+        z = self.reparameterize(mu, var)
+        x_recon = self.decoder(z)
+        x_recon = x_recon*c
         return x_recon, mu, var
         
 class SMVAE_NORMAL(SuperVAE):
@@ -130,7 +169,16 @@ class SMVAE_NORMAL(SuperVAE):
         self.type = 'normal'
 
     def KL_divergence(self, mu, var):
-        return self.KL_normal(mu, var)
+        z_mu, c_mu = mu[:,:-1], mu[:,-1]
+        z_var, c_var = var[:,:-1], var[:,-1]
+        
+        kl_standard = self.KL_normal(z_mu, z_var)
+        
+        p = Normal(c_mu, c_var)
+        q = Normal(torch.zeros_like(c_mu)-4, torch.ones_like(c_var))
+        kl_contrasts = torch.sum(KL(p,q))
+        
+        return kl_standard + kl_contrasts
     
     def get_params(self, mean, logvar):
         var = torch.exp(0.5*logvar)
@@ -147,7 +195,7 @@ class SMVAE_NORMAL(SuperVAE):
         x_recon = self.decoder(z)
         x_recon = x_recon*c
         return x_recon, mu, var    
-
+    
 class SMVAE_BETA(SuperVAE):    
     def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
                 dec_hidden_sizes=[32, 256], latent_size=10, var=0.01,
@@ -240,40 +288,46 @@ class SMVAE_LOGNORMAL(SuperVAE):
             x_recon = torch.clamp(x_recon, max=1)
             return x_recon, mu, var
 
-'''class SMVAE_GAMMA(SuperVAE):
-    def __init__(self, input_size, enc_hidden_sizes,
-                dec_hidden_sizes, latent_size, alpha=1, var=1,
+class SMVAE_GAMMA(SuperVAE):
+    def __init__(self, input_size=784, enc_hidden_sizes=[256,32],
+                dec_hidden_sizes=[32,256], latent_size=10, alpha_prior=1, var=0.01,
                 enc_nonlinearity=nn.ReLU(), dec_nonlinearity=nn.ReLU()):
-        gname = 'Gamma(' + str(alpha) + ') SMVAE'
+        gname = 'Gamma' + str(alpha_prior) + '_SMVAE'
         super().__init__(input_size, enc_hidden_sizes, dec_hidden_sizes, 
                          latent_size, var, dimension_decrease=1, name=gname)
-        self.alpha = alpha
+        self.alpha_prior = alpha_prior
+        self.type = 'gamma'
 
-    def get_params(self, mean, var):
+    def get_params(self, mean, logvar):
         mu = mean[:,:-1]
-        logvar = var[:,:-1]
+        var = logvar[:,:-1]
+        var = torch.exp(0.5*var)
 
         g_logmean = mean[:,-1]
-        g_logvar = var[:,-1]
+        g_logvar = logvar[:,-1]
         alpha = torch.exp(g_logmean)**2 / torch.exp(g_logvar)
         beta = torch.exp(g_logmean) / torch.exp(g_logvar)
 
-        return mu, logvar, alpha, beta
+        return mu, var, alpha, beta
 
     def forward(self, x):
-        mean, var = self.encoder(x)
-        mu, logvar, alpha, beta = self.get_params(mean, var)
-        z, c = self.reparameterize(mu, logvar, True, Gamma, alpha, beta)
+        mean, logvar = self.encoder(x)
+        mu, var, alpha, beta = self.get_params(mean, logvar)
+        z, c = self.reparameterize(mu, var, True, Gamma, alpha, beta)
         c = c.reshape(-1, 1)
         x_recon = self.decoder(z)
         x_recon = x_recon*c
         x_recon = torch.clamp(x_recon, max=1)
-        return x_recon, mean, var
+        
+        par1 = (mu, alpha)
+        par2 = (var, beta)
+        return x_recon, par1, par2
 
     def KL_gamma(self, alpha, beta, prior_alpha, prior_beta):
-        
-                #KL divergence of the given Gamma distribution from the prior Gamma
-        
+        '''
+            KL divergence of the given Gamma distribution from the prior Gamma
+        '''
+        prior_alpha = torch.Tensor([prior_alpha])
         kl = torch.sum(\
             (alpha-prior_alpha)*torch.digamma(alpha) \
             - (beta-prior_beta)*alpha/beta \
@@ -281,19 +335,17 @@ class SMVAE_LOGNORMAL(SuperVAE):
             + torch.lgamma(prior_alpha) \
             - torch.lgamma(alpha))
         return kl
-
-    def loss_function(self, x_recon, x, mean, var, is_bce):
-        prior_alpha, prior_beta = Tensor([self.alpha]), Tensor([1])
-        mu, logvar, alpha, beta = self.get_params(mean, var)
-			
-        KLD = self.KL_normal(mu, logvar) \
-            + self.KL_gamma(alpha, beta, prior_alpha, prior_beta)
-        #KLD = self.var*KLD
-
-        if is_bce:
-            REC = F.binary_cross_entropy(x_recon, x.view(-1, 784), reduction='sum')
-        else:
-            REC = F.mse_loss(x_recon, x.view(-1, 784), reduction='sum')
-        self.loss = REC + KLD, REC, KLD
-        return self.loss
-'''
+    
+    def KL_divergence(self, par1, par2):
+        mu, alpha = par1[0], par1[1]
+        var, beta = par2[0], par2[1]
+        
+        kl_normal = self.KL_normal(mu, var)
+        
+        '''p_gamma = Gamma(alpha, beta)
+        q_gamma = Gamma(self.alpha_prior, 1)
+        kl_gamma = torch.sum(KL(p_gamma, q_gamma))''' # appaerantly not working correctly due to some pytorch bug
+        # so we use the KL implemented by hand    
+        kl_gamma = self.KL_gamma(alpha, beta, self.alpha_prior, 1)
+            
+        return kl_normal + kl_gamma

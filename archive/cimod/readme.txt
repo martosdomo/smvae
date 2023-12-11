@@ -1,0 +1,1 @@
+contrastinf without x/c operation (only x_hat*c at the end) → 60k kép jó, annál kevesebb 500 körüli elbo
